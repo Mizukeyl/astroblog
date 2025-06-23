@@ -1,43 +1,74 @@
 ---
-import Layout from '../layouts/Layout.astro';
-
+import Layout from "../layouts/Layout.astro";
 
 // Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
 // Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
 
-<Layout>
-  Coucou
-</Layout>
+<Layout />
 
 <script>
-	import * as THREE from 'three';
-	import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+  import { bob } from "../lib/looper";
+  import * as THREE from "three";
+  // import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+  // import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-    //const controls = new OrbitControls( camera, renderer.domElement );
-    const loader = new GLTFLoader();
+  //const controls = new OrbitControls( camera, renderer.domElement );
+  // const loader = new GLTFLoader();
 
- 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+  // Scene setup
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  camera.lookAt(scene.position);
+  camera.position.z = 5;
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
-const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-const cube = new THREE.Mesh( geometry, material );
-scene.add( cube );
+  // Objects setup
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x00ff00,
+    wireframe: true,
+  });
+  const cube = new THREE.Mesh(geometry, material);
+  scene.add(cube);
 
-camera.position.z = 5;
+  console.log(bob([1, 2, 3, 9, 8, 0]));
 
-function animate() {
-    requestAnimationFrame( animate );
+  // Renderer setup
+  const renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  const threeContainer = document.getElementById("three-container");
+  if (threeContainer) {
+    threeContainer.appendChild(renderer.domElement);
+  }
+  renderer.setAnimationLoop(looper);
+
+  function looper() {
     cube.rotation.x += 0.01;
     cube.rotation.y += 0.01;
-    renderer.render( scene, camera );
-}
-animate();
+    renderer.render(scene, camera);
+  }
 
+  const tanFOV = Math.tan(((Math.PI / 180) * camera.fov) / 2);
+  const windowHeight = window.innerHeight;
+
+  window.addEventListener("resize", onWindowResize, false);
+
+  function onWindowResize(event: Event) {
+    camera.aspect = window.innerWidth / window.innerHeight;
+
+    // adjust the FOV
+    camera.fov =
+      (360 / Math.PI) * Math.atan(tanFOV * (window.innerHeight / windowHeight));
+
+    camera.updateProjectionMatrix();
+    camera.lookAt(scene.position);
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.render(scene, camera);
+  }
 </script>
