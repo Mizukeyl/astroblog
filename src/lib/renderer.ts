@@ -27,13 +27,10 @@ export function initThreeScene(
   camera.lookAt(scene.position);
   camera.position.z = 5;
 
-  const renderer = new THREE.WebGLRenderer();
+  const canvas = document.getElementById("three-container") as HTMLCanvasElement;
+  let renderer: THREE.WebGLRenderer;
+  renderer = new THREE.WebGLRenderer({antialias: true, canvas});
   renderer.setSize(window.innerWidth, window.innerHeight);
-
-  const threeContainer = document.getElementById("three-container");
-  if (threeContainer) {
-    threeContainer.appendChild(renderer.domElement);
-  }
 
   const sb = { scene, camera, renderer };
   renderer.setAnimationLoop(() => looperCb(sb)); 
