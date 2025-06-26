@@ -9,32 +9,101 @@ import Layout from "../layouts/Layout.astro";
 
 <script>
   import * as Three from "three";
+  import {
+    Lensflare,
+    LensflareElement,
+  } from "three/examples/jsm/objects/Lensflare.js";
+
+  import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+  import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+  import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
   import { initThreeScene, type SceneBundle } from "../lib/renderer";
   import { initGui } from "../lib/gui";
 
   const { scene, camera, renderer } = initThreeScene(customLooper);
 
-  // Objects setup
-  const geometry = new Three.BoxGeometry(1, 1, 1);
-  const material = new Three.MeshBasicMaterial({
-    color: 0x00ff00,
+  const guiStructure = {
+    sun: {
+      opacity: 0.8,
+    },
+  };
+  // === GRID SEA ===
+  const gridWidth = 300;
+  const gridDepth = 50;
+  const gridSegments = 100;
+
+  const seaGeometry = new Three.PlaneGeometry(
+    gridWidth,
+    gridDepth,
+    gridSegments,
+    gridSegments
+  );
+  const seaMaterial = new Three.MeshBasicMaterial({
+    color: 0x9b5de5, // purple color
     wireframe: true,
   });
-  const cube = new Three.Mesh(geometry, material);
-  cube.name = "myCube";
-  scene.add(cube);
+  const sea = new Three.Mesh(seaGeometry, seaMaterial);
+  sea.rotation.x = -Math.PI / 2;
+  sea.position.y = -2;
+  scene.add(sea);
 
-  function customLooper(sb: SceneBundle) {
-    const cube = sb.scene.getObjectByName("myCube");
-    if (cube) {
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
+  // === POINT sunLIGHT FOR SUN + LENSFLARE ===
+  const sunlight = new Three.PointLight(0xffee88, 0.2, 1000);
+  sunlight.position.set(0, 10, -40);
+  scene.add(sunlight);
+
+  const lensflare = new Lensflare();
+  const textureLoader = new Three.TextureLoader();
+  textureLoader.load(
+    "https://threejs.org/examples/textures/lensflare/lensflare0.png",
+    (texture) => {
+      lensflare.addElement(new LensflareElement(texture, 700, 0));
+      sunlight.add(lensflare);
     }
+  );
+
+  // === OPTIONAL: HORIZON GRID ===
+  const gridHelper = new Three.GridHelper(50, 100, 0x9b5de5, 0x9b5de5);
+  gridHelper.position.y = -1.99;
+  // scene.add(gridHelper);
+
+  // === BLOOM POSTPROCESSING ===
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloomPass = new UnrealBloomPass(
+    new Three.Vector2(window.innerWidth, window.innerHeight),
+    1.2, // strength
+    0.8, // radius
+    0.2 // threshold
+  );
+  // bloomPass.bloomTintColors = new Three.Color(0x9b5de5); // purple tint if supported
+  composer.addPass(bloomPass);
+
+  // === ANIMATION LOOP ===
+  function customLooper(sb: SceneBundle) {
+    // Animate sea vertices for "waves"
+    const time = performance.now() * 0.001;
+    for (let i = 0; i < seaGeometry.attributes.position.count; i++) {
+      const ix = i % (gridSegments + 1);
+      const iz = Math.floor(i / (gridSegments + 1));
+      const wave = Math.sin(time * 2 + ix * 0.3 - iz * 0.5) * 0.5;
+      seaGeometry.attributes.position.setZ(i, wave);
+    }
+    seaGeometry.attributes.position.needsUpdate = true;
+
+    // Animate sun (optional: slow up/down)
+    sunlight.position.y = 10 + Math.sin(time * 0.2) * 5;
+    // Sync sun opacity with GUI
+    // sunlight. = guiStructure.sun.opacity;
+
+    // Render with bloom
+    // composer.render();
+
     sb.renderer.render(sb.scene, sb.camera);
   }
 
   // Initialize Dat GUI
-  initGui(camera);
+  initGui(camera, guiStructure);
 
   const tanFOV = Math.tan(((Math.PI / 180) * camera.fov) / 2);
   const windowHeight = window.innerHeight;

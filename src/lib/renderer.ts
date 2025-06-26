@@ -25,7 +25,8 @@ export function initThreeScene(
     1000 // far
   );
   camera.lookAt(scene.position);
-  camera.position.z = 5;
+  camera.position.z = 30;
+  camera.position.y = 2;
 
   const canvas = document.getElementById("three-container") as HTMLCanvasElement;
   let renderer: THREE.WebGLRenderer;
